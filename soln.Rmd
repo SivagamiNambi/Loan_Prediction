@@ -8,6 +8,7 @@ This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute
 Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
 
 ```{r}
+#Initial
 setwd("~/Desktop/AV/Loan")
 getwd()
 
@@ -18,7 +19,7 @@ summary(test)
 ```
 
 ```{r}
-#Baseline
+#Baseline model
 table(train$Loan_Status)
 422/(422+192)
 nrow(test)
@@ -32,5 +33,73 @@ write.csv(res,"sample_submission.csv")
 ```
 
 Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+```{r}
+##PRE_PROCESSING
+
+#Handling Missing values
+
+install.packages("mice")
+require(mice)
+#ppm-predictive mean matching (requires computation of inverse matrix)
+#Here the data has large unbalanced factor so duplicate rows are possible
+imputed=mice(data=train,m=1,method="cart",maxit = 3,seed=50)
+train=complete(imputed,1)
+imputed=mice(data=test,m=1,method="cart",maxit = 3,seed=50)
+test=complete(imputed,1)
+md.pattern(train)
+md.pattern(test)
+summary(train)
+summary(test)
+
+
+#Converting Categorical to Numeric
+train$Gender=as.numeric(train$Gender)
+train$Married=as.numeric(train$Married)
+train$Education=as.numeric(train$Education)
+train$Self_Employed=as.numeric(train$Self_Employed)
+train$Property_Area=as.numeric(train$Property_Area)
+train$Loan_Status=as.numeric(train$Loan_Status)
+train$Dependents=as.numeric(train$Dependents)
+train$Loan_ID=as.numeric(train$Loan_ID)
+summary(train)
+
+test$Gender=as.numeric(test$Gender)
+test$Married=as.numeric(test$Married)
+test$Education=as.numeric(test$Education)
+test$Self_Employed=as.numeric(test$Self_Employed)
+test$Property_Area=as.numeric(test$Property_Area)
+test$Dependents=as.numeric(test$Dependents)
+summary(test)
+
+#Splitting into Train and Test
+
+install.packages("caTools")
+require(caTools)
+split=sample.split(train$Loan_Status,SplitRatio = 0.75)
+myTrain=subset(train,split==TRUE)
+myTest=subset(train,split==FALSE)
+summary(myTrain)
+summary(myTest)
+
+
+```
+```{r}
+#Simpe model based on Correlation
+cor(myTrain)
+table(myTrain$Credit_History,myTrain$Loan_Status)
+table(myTest$Credit_History,myTest$Loan_Status)
+(17+105)/(17+105+1+31)
+
+l=c()
+for(i in 1:nrow(test))
+{
+  if(test$Credit_History[i]==1)
+  l=c(l,"Y")
+  else
+  l=c(l,"N")
+}
+res=data.frame(test$Loan_ID,l)
+write.csv(res,"sample_submission.csv")
+```
 
 When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
